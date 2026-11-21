@@ -17,7 +17,8 @@ mkdir -p "docs/proof/$phase"
 out="docs/proof/$phase/smoke.txt"
 {
   echo "# Smoke + unit test — $phase"
-  echo "commit: $(git rev-parse --short HEAD 2>/dev/null)$(git diff --quiet 2>/dev/null || echo ' (+ thay đổi chưa commit)')"
+  # core.autocrlf=true: repo checkout từ Windows (CRLF) không bị WSL coi là "đã sửa"
+  echo "commit: $(git rev-parse --short HEAD 2>/dev/null)$(git -c core.autocrlf=true diff --quiet 2>/dev/null || echo ' (+ thay đổi chưa commit)')"
   echo "python: $(python3 --version 2>&1)"
   echo "lệnh:   PYTHONPATH=tests:. python3 -m unittest discover -s tests -v"
   echo

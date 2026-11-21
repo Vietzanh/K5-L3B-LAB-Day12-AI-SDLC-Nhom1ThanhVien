@@ -63,7 +63,8 @@ def retro_filled(text, n):
 
 
 def git(*args):
-    p = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
+    # core.autocrlf=true: repo checkout từ Windows (CRLF) không bị git trong WSL coi là "đã sửa"
+    p = subprocess.run(["git", "-c", "core.autocrlf=true", *args], cwd=ROOT, capture_output=True, text=True)
     return p.returncode, p.stdout.strip()
 
 
