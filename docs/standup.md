@@ -6,3 +6,4 @@
 | 1 | Vietzanh | Lát 1–4 xong, 61 test xanh qua WSL, smoke hai tiến trình KHỚP | HUD, README, ma trận truy vết, gắn tag phase-1 | Không có ảnh chơi thử trình duyệt (làm qua CLI) |
 | 2 | Vietzanh | Lát 1–3 (số chuẩn, cá, Cá Sấu, quán 2 bếp/4 bàn) + smoke tích hợp phút 20 KHỚP | Lát 4: day, Shop, pause, HUD | Chrome trên Windows không vào được máy chủ trong WSL → chạy `hud_demo.py` bằng python Windows |
 | 2 | Vietzanh | 80 test xanh, day 1 Ngày 1.2 s, ảnh HUD | Ma trận truy vết, retro, tag phase-2 | — |
+| 3 | Vietzanh | ADR + bảng tác động, adapter kho, gather/quán độ tươi; smoke bàn giao phút 20 KHỚP | Day/Shop cá thể, HUD, tài liệu | 23 test cũ đổ vì schema mới (đã dự kiến trong ADR) |

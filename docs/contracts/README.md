@@ -1,18 +1,18 @@
-# Hợp đồng tích hợp (Contract v1.1 — Phase 2)
+# Hợp đồng tích hợp (Contract v1.2 — Phase 3)
 
 Chốt ở kickoff Phase 1. Đổi hợp đồng: ghi ADR trong `docs/adr/` và cập nhật file này.
 
-## 1. File kho (PRD-0 mục G) — `gather --inventory-out` → `quan --inventory`
+## 1. File kho (v1.2, Ticket-03; quyết định: ADR-0001) — `gather --inventory-out` → `quan --inventory`
 
 ```json
-{"items":{"bong_sung":2,"ca_loc":1}}
+{"items":[{"id":"I1","kind":"ca_linh","fresh":100},{"id":"I2","kind":"ca_loc","fresh":97.5}]}
 ```
 
-- Đúng một khóa gốc `items`; giá trị là object `kind → số nguyên ≥ 0`. Kind vắng = 0; bên ghi **bỏ** khóa có lượng 0, sắp khóa theo kind. Kho rỗng `{"items":{}}`.
-- Kind hợp lệ v1.1: `bong_dien_dien`, `bong_sung`, `ca_keo`, `ca_linh`, `ca_loc`, `keo_neo` (v1.0 chỉ 4 loại đầu trừ cá kèo/kèo nèo). Bên đọc từ chối sai schema / kind lạ / số âm / không nguyên → **mã 2**.
-- Ghi **đúng một lần** khi có `gather_end` (ngất ghi rỗng), nội dung khớp `gather_end.data.inventory`; chạm `--ticks` trước thì **không** tạo/ghi đè. Ghi file tạm cùng thư mục rồi `os.replace` (nguyên tử).
-- Trần giỏ không áp lên kho quán. Ví dụ hợp lệ: [`inventory.sample.json`](inventory.sample.json).
-- `--mode day` bàn giao kho **trong bộ nhớ** cùng tick `gather_end` (cùng schema); hai cờ file kho chỉ dành cho mode độc lập.
+- Đúng một khóa gốc `items`; giá trị là mảng cá thể `{id, kind, fresh}`, **sắp theo id**. Kho rỗng `{"items":[]}`.
+- `id` chuỗi duy nhất khác rỗng (`I1, I2…` cấp theo thứ tự vào giỏ, tăng xuyên pha và Ngày); `kind` thuộc 6 nguyên liệu; `fresh` hữu hạn trong [0, 100], ghi đủ chính xác để đọc lại giữ đúng giá trị/nhánh ở ngưỡng 30.
+- Bên đọc (contract 1.2) từ chối kho đếm theo loại (object), sai schema, kind lạ, id trùng, fresh ngoài miền → **mã 2**. Quán nhận nguyên số lượng, id, độ tươi (kể cả hàng ươn).
+- Ghi **đúng một lần** khi có `gather_end` (ngất ghi rỗng), khớp `gather_end.data.inventory`; chạm `--ticks` trước thì không tạo/ghi đè. Ghi file tạm cùng thư mục rồi `os.replace`.
+- `--mode day` bàn giao trong bộ nhớ cùng tick, không hao thêm. Ví dụ hợp lệ: [`inventory.sample.json`](inventory.sample.json).
 
 ## 2. Giao diện `sim/*` ↔ `client/ui`
 
@@ -50,3 +50,4 @@ Chốt ở kickoff Phase 1. Đổi hợp đồng: ghi ADR trong `docs/adr/` và 
 | shop | `shop_end` | `reason` (done/time) | ShopSim → DayGame |
 
 Vỏ event của `day` có thêm `day`. Event kết thúc pha mang pha cũ; `phase_start` mang pha mới.
+| gather/quan | `spoiled` (v1.2) | `item_id,kind,location` (hold/stock), theo id | sim → HUD |

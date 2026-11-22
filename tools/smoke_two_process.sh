@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Smoke hai tiến trình (PRD-0 mục G): gather cập bến ghi kho -> quan đọc kho, so snapshot tick 0.
+# Smoke hai tiến trình (PRD-0 mục G; v1.2 Ticket-03): gather cập bến ghi kho cá thể -> quan đọc kho,
+# so CHÍNH XÁC id, kind, fresh của snapshot quán tick 0 với file (sau lần hao ở bước gather).
 # Dùng: bash tools/smoke_two_process.sh <thư-mục-bằng-chứng>   (trong WSL/Linux, cần python3)
 set -eu
 out_dir="${1:-docs/proof/phase-1}"
@@ -8,7 +9,7 @@ mkdir -p "$out_dir"
 cmd=$(python3 -c 'import json;print(json.load(open("game.contract.json"))["headless_cmd"])')
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-echo '{"gather":{"hold":["ca_loc","bong_sung","bong_sung"]}}' > "$tmp/dock.json"
+echo '{"gather":{"hold":[{"id":"I1","kind":"ca_loc","fresh":100},{"id":"I2","kind":"bong_sung","fresh":100},{"id":"I3","kind":"bong_sung","fresh":100}],"random_fish":false,"monsters":[]}}' > "$tmp/dock.json"
 echo '{"frames":[{"tick":0,"interact":true}]}' > "$tmp/dock-inputs.json"
 log="$out_dir/two-process.txt"
 {
@@ -30,8 +31,8 @@ inv = json.load(open(sys.argv[1]))
 snap = json.loads(open(sys.argv[2]).readline())
 items = inv["items"]
 stock = snap["stock"]
-print("file kho :", json.dumps(items, sort_keys=True))
-print("quan tick0:", json.dumps(stock, sort_keys=True))
+print("file kho :", json.dumps(items, ensure_ascii=False))
+print("quan tick0:", json.dumps(stock, ensure_ascii=False))
 print("KẾT QUẢ:", "KHỚP" if stock == items else "LỆCH")
 sys.exit(0 if stock == items else 1)
 PY
