@@ -1,4 +1,4 @@
-# Hợp đồng tích hợp (Contract v1.0 — Phase 1)
+# Hợp đồng tích hợp (Contract v1.1 — Phase 2)
 
 Chốt ở kickoff Phase 1. Đổi hợp đồng: ghi ADR trong `docs/adr/` và cập nhật file này.
 
@@ -9,14 +9,16 @@ Chốt ở kickoff Phase 1. Đổi hợp đồng: ghi ADR trong `docs/adr/` và 
 ```
 
 - Đúng một khóa gốc `items`; giá trị là object `kind → số nguyên ≥ 0`. Kind vắng = 0; bên ghi **bỏ** khóa có lượng 0, sắp khóa theo kind. Kho rỗng `{"items":{}}`.
-- Kind hợp lệ v1.0: `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. Bên đọc từ chối sai schema / kind lạ / số âm / không nguyên → **mã 2**.
+- Kind hợp lệ v1.1: `bong_dien_dien`, `bong_sung`, `ca_keo`, `ca_linh`, `ca_loc`, `keo_neo` (v1.0 chỉ 4 loại đầu trừ cá kèo/kèo nèo). Bên đọc từ chối sai schema / kind lạ / số âm / không nguyên → **mã 2**.
 - Ghi **đúng một lần** khi có `gather_end` (ngất ghi rỗng), nội dung khớp `gather_end.data.inventory`; chạm `--ticks` trước thì **không** tạo/ghi đè. Ghi file tạm cùng thư mục rồi `os.replace` (nguyên tử).
 - Trần giỏ không áp lên kho quán. Ví dụ hợp lệ: [`inventory.sample.json`](inventory.sample.json).
+- `--mode day` bàn giao kho **trong bộ nhớ** cùng tick `gather_end` (cùng schema); hai cờ file kho chỉ dành cho mode độc lập.
 
 ## 2. Giao diện `sim/*` ↔ `client/ui`
 
 - UI **chỉ đọc** snapshot (cùng trường với dòng `snapshot` của JSONL, mục E) qua `GET /state` của `chonoi.live`, kèm `meta` (= tuning của mode) và `events` gần nhất.
-- UI **gửi vào** đúng trạng thái phím: `POST /input {"move":[a,b],"interact":bool,"catch":bool}`; sim tự lấy cạnh lên. `POST /restart` chơi lại.
+- UI **gửi vào** đúng trạng thái phím: `POST /input {"move":[a,b],"interact","catch","pause","shop_done":bool,"buy":"oxygen"|"hp"}`; sim tự lấy cạnh lên. `POST /continue` đóng màn hình (menu/intro/kết quả), `POST /restart` chơi lại.
+- Màn hình (menu, DayIntro, EveningIntro, DayResult, Summary) là trạng thái của cửa sổ: khi hiện thì không bước sim (không đổi JSONL headless).
 - Sim không biết gì về UI (không đồng hồ thật, không RNG giao diện) → headless và cửa sổ chạy cùng một lớp sim.
 
 ## 3. Sự kiện (tên → `data`)
@@ -38,3 +40,13 @@ Chốt ở kickoff Phase 1. Đổi hợp đồng: ghi ADR trong `docs/adr/` và 
 | quan | `paid` | `order_id,table_id,base_price,tip,amount,reason` | sim → HUD |
 | quan | `customer_left` | `order_id,table_id,reason,reputation` | sim → HUD |
 | quan | `quan_end` | `reason:"time",money,earned,shift_earned,reputation` | sim → runner |
+| gather | `fish_spawned` | `id,kind,pos` | sim → HUD |
+| gather | `monster_hit` | `monster_id,hp,lost,pos` (lost LIFO, pos người chơi) | sim → HUD |
+| gather | `faint` (v1.1) | thêm `cause:"monster"` | sim → HUD |
+| day | `day_start` / `phase_start` | `{}` | DayGame → HUD (màn hình intro) |
+| day | `day_plan` | `dishes,ingredients` | DayGame → HUD (danh sách Má Tư cần) |
+| mọi mode | `paused` / `resumed` | `{}` | Session → HUD |
+| shop | `bought` / `buy_failed` | `upgrade,level,price,money` / `action,reason` | ShopSim → HUD |
+| shop | `shop_end` | `reason` (done/time) | ShopSim → DayGame |
+
+Vỏ event của `day` có thêm `day`. Event kết thúc pha mang pha cũ; `phase_start` mang pha mới.

@@ -1,0 +1,24 @@
+# Smoke day — commit 1997a93, contract 1.1
+$ python3 -m chonoi.headless --mode day --seed 42 --days 1 --ticks 22200 --out day1.jsonl
+exit=0 thời gian=1.22 s
+--- event đổi pha + dòng end
+{"type": "event", "tick": 0, "phase": "gather", "day": 1, "name": "day_start", "data": {}}
+{"type": "event", "tick": 0, "phase": "gather", "day": 1, "name": "day_plan", "data": {"dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}, "ingredients": {"bong_sung": 6, "ca_loc": 3}}}
+{"type": "event", "tick": 0, "phase": "gather", "day": 1, "name": "phase_start", "data": {}}
+{"type": "event", "tick": 10800, "phase": "gather", "day": 1, "name": "gather_end", "data": {"reason": "time", "inventory": {"items": {}}}}
+{"type": "event", "tick": 10800, "phase": "quan", "day": 1, "name": "phase_start", "data": {}}
+{"type": "event", "tick": 21600, "phase": "quan", "day": 1, "name": "quan_end", "data": {"reason": "time", "money": 0, "earned": 0, "shift_earned": 0, "reputation": 3.0}}
+{"type": "event", "tick": 21600, "phase": "shop", "day": 1, "name": "phase_start", "data": {}}
+{"type": "event", "tick": 22200, "phase": "shop", "day": 1, "name": "shop_end", "data": {"reason": "time"}}
+{"type": "end", "ticks": 22200, "sim_tick": 22200, "mode": "day", "state": "finished", "reason": "days_complete", "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "days_completed": 1}
+
+$ python3 -m chonoi.headless --mode day --seed 7 --days 3 --scenario sc.json --inputs in.json --ticks 10 --snapshot-every 1 --out day3.jsonl
+  (sc.json: money 700, cập bến ngay, ca quán 1 tick; in.json: tick 2 mua hp, tick 3 mua oxygen + shop_done, tick 4 cập bến Ngày 2)
+exit=0
+event 0 Ngày 1 day_start {}
+event 3 Ngày 1 bought {"upgrade": "hp", "level": 1, "price": 250, "money": 450}
+snapshot 3 Ngày 1 shop upgrades {'hp': 1} active {} hp_max None oxygen_max_ticks None money 450
+event 4 Ngày 1 bought {"upgrade": "oxygen", "level": 1, "price": 200, "money": 250}
+event 4 Ngày 1 shop_end {"reason": "done"}
+event 4 Ngày 2 day_start {}
+snapshot 4 Ngày 2 gather upgrades {'hp': 1, 'oxygen': 1} active {'hp': 1, 'oxygen': 1} hp_max 4 oxygen_max_ticks 2700 money 250
