@@ -18,3 +18,6 @@
 | 14 | Phase 3 | Độ chính xác độ tươi | 240 đơn vị nguyên / điểm (gợi ý của ticket, ADR-0001); fixture không biểu diễn chính xác thì giữ số thực. | Vietzanh |
 | 15 | Phase 3 | JSONL làm tròn 3 chữ số, nhưng ticket yêu cầu "so chính xác" độ tươi snapshot quán với file kho | Không làm tròn riêng trường `fresh` trong JSONL (sửa `chonoi/jsonl.py` của khung, có ghi lý do); vẫn tất định và vẫn đạt nếu bộ chấm dùng dung sai ±0.01. | Vietzanh |
 | 16 | Phase 3 | `base_price` khi chốt theo độ tươi có thể làm giá ngay khi nấu tụt 1k (vd. 60 → 59 vì hao 1 đơn vị trước khi nấu) | Đúng theo công thức floor của ticket; giữ nguyên. | Vietzanh |
+| 17 | Phase 4 | "Benchmark có render" khi khung Python chỉ có thư viện chuẩn (không có thư viện đồ họa) | Viết trình render phần mềm vẽ cảnh lặn 1280×720 vào framebuffer RGB (cùng bố cục cửa sổ chơi), đo FPS thật của vòng sim+render; ghi rõ trong release notes. | Vietzanh |
+| 18 | Phase 4 | `load_ms` "từ lúc khởi chạy" | Tính từ lúc nạp module `chonoi.bench` (sớm nhất đo được trong tiến trình), không gồm khởi động trình thông dịch. | Vietzanh |
+| 19 | Phase 4 | Soak "bằng script input hoặc bot tất định" | Bot tất định đọc trạng thái sim (không RNG, không đồng hồ): lấy đúng nguyên liệu Má Tư cần, tránh Cá Sấu, canh oxy; tối nấu/bưng/phục vụ; Shop mua khi dư ≥ 100k. | Vietzanh |

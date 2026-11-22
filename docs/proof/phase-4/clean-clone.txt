@@ -1,0 +1,19 @@
+# Clone sạch — nguồn p4/release (fc36bc7), Linux, Python 3.10.12
+$ git clone <repo> cho-noi && cd cho-noi        (lệnh 1 + 2)
+clone OK: AGENTS.md CHANGELOG.md CREDITS.md README.md TEAM.md chonoi docs game.contract.json tests tools 
+$ python3 -m chonoi.live                        (lệnh 3; ở đây thêm --port 8123 và kiểm /state)
+Mở trình duyệt tại http://127.0.0.1:8123/  (chế độ day, seed 1). Ctrl+C để dừng.
+GET /state -> {'mode': 'day', 'phase': 'gather', 'day': 1, 'screen': 'menu', 'state': 'playing'}
+GET / -> 27931 byte HTML, có <canvas>: True
+$ PYTHONPATH=tests:. python3 -m unittest discover -s tests
+Ran 101 tests in 12.646s
+
+OK
+$ python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 22200 --out day.jsonl
+exit=0 dòng cuối: {"type":"end","ticks":22200,"sim_tick":22200,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":1}
+$ python3 -m chonoi.bench --seed 42 --duration 2 --out bench.json
+{"avg_fps": 1187.054, "p1_low_fps": 730.244, "frames": 2375, "measured_s": 2.000751, "load_ms": 19.9}
+exit=0
+$ python3 -m chonoi.soak --seed 7 --days 2 --out soak.json
+{"days": 2, "days_completed": 2, "crashes": 0, "duration_s": 0.567}
+exit=0

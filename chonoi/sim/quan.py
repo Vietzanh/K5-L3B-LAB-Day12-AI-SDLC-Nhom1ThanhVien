@@ -437,7 +437,7 @@ class QuanSim:
         self.customers = [x for x in self.customers if x["id"] != c["id"]]
 
     def _clamp_rep(self, v):
-        return round(min(self.t["reputation_max"], max(self.t["reputation_min"], v)), 6)
+        return float(round(min(self.t["reputation_max"], max(self.t["reputation_min"], v)), 6))  # luôn số thực (5.0, không 5)
 
     # --- khách mới ----------------------------------------------------------------
     def _arrival_due(self):

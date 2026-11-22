@@ -34,6 +34,9 @@ SCENES = {
                           {"id": "C3", "table_id": "T3", "dish_id": "ca_loc_nuong_trui", "state": "eating",
                            "order_status": "served", "eat_ticks_left": 400, "base_price": 60, "tip": 12}],
                       "stoves": [{"id": "B1", "state": "cooking", "dish": DISH, "cook_ticks_left": 120}]}),
+    # cả hai cảnh báo buổi sáng cùng lúc: hết oxy dưới nước ("Hết hơi!") + gần Cá Sấu ("Thủy quái!")
+    "warn": ("day", {"day": {"upgrades": {"hp": 2}}, "gather": {"player": {"pos": [51, 21], "oxygen_ticks": 1},
+                                "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 90}, {"id": "I2", "kind": "ca_keo", "fresh": 29}]}}),
     "shop": ("day", {"day": {"money": 320, "earned": 320}, "gather": {"random_fish": False},
                      "quan": {"time_left_ticks": 1}}),
     "menu": ("day", {}),
