@@ -1,6 +1,6 @@
-# Smoke day — commit 1997a93, contract 1.1
+# Smoke day — commit f5d073b, contract 1.1
 $ python3 -m chonoi.headless --mode day --seed 42 --days 1 --ticks 22200 --out day1.jsonl
-exit=0 thời gian=1.22 s
+exit=0 thời gian=1.0 s
 --- event đổi pha + dòng end
 {"type": "event", "tick": 0, "phase": "gather", "day": 1, "name": "day_start", "data": {}}
 {"type": "event", "tick": 0, "phase": "gather", "day": 1, "name": "day_plan", "data": {"dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}, "ingredients": {"bong_sung": 6, "ca_loc": 3}}}
