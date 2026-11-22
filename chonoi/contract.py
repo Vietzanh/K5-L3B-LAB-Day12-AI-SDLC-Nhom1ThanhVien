@@ -192,6 +192,20 @@ def validate_tuning(t):
             raise BadInput(f"menu.{dish_id}.recipe phải là kind -> số nguyên dương")
     _validate_day_plan(t.get("day_plan"), menu)
     _validate_shop(t.get("shop"))
+    _validate_freshness(t.get("freshness"))
+
+
+def _validate_freshness(f):
+    """v1.2: độ tươi. Hao mỗi tick phải là số nguyên đơn vị (240 đơn vị / điểm) để so ngưỡng chính xác."""
+    if not isinstance(f, dict) or set(f) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness phải có initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    _between("freshness.initial", f["initial"], 0, 100)
+    _between("freshness.spoiled_below", f["spoiled_below"], 0, 100)
+    for k in ("gather_decay_per_s", "quan_decay_per_s"):
+        _between(f"freshness.{k}", f[k], 0, 100)
+        per_tick = f[k] * 240 / 60
+        if abs(per_tick - round(per_tick)) > 1e-9:
+            raise BadInput(f"tuning.freshness.{k} × 240 / 60 phải là số nguyên đơn vị/tick")
 
 
 def recipe_total(dishes, menu):
