@@ -20,9 +20,14 @@ DISH = {"order_id": "C2", "dish_id": "goi_bong_sung", "base_price": 40}
 SCENES = {
     # lặn sâu gần Cá Sấu M1, oxy thấp, giỏ có hàng -> cảnh báo "Thủy quái!" + oxy nhấp nháy
     "gather": ("day", {"gather": {"player": {"pos": [55, 21], "oxygen_ticks": 300},
-                                  "hold": ["ca_loc", "bong_sung", "bong_sung", "ca_linh"]}}),
+                                  "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 95}, {"id": "I2", "kind": "bong_sung", "fresh": 31},
+                                           {"id": "I3", "kind": "bong_sung", "fresh": 28}, {"id": "I4", "kind": "ca_linh", "fresh": 70}]}}),
     # quán: một khách sắp giận, một bếp đang nấu, khách đang ăn
-    "quan": ("quan", {"player": {"pos": [6, 6]}, "stock": {"ca_loc": 3, "bong_sung": 2, "ca_keo": 2},
+    "quan": ("quan", {"player": {"pos": [6, 6]},
+                      "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 92}, {"id": "I2", "kind": "ca_loc", "fresh": 40},
+                                {"id": "I3", "kind": "ca_loc", "fresh": 25}, {"id": "I4", "kind": "bong_sung", "fresh": 88},
+                                {"id": "I5", "kind": "bong_sung", "fresh": 86}, {"id": "I6", "kind": "ca_keo", "fresh": 31},
+                                {"id": "I7", "kind": "ca_keo", "fresh": 60}],
                       "customers": [
                           {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": 700},
                           {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung", "order_status": "assigned"},
