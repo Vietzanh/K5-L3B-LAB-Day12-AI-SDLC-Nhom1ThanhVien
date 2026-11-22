@@ -36,7 +36,8 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, dishes=None, money=0, earned=0,
+                 reputation=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
@@ -54,7 +55,9 @@ class QuanSim:
         self.phase_tick = 0
         self.patience_full = _ticks(t["patience_s"])
         self.eat_full = _ticks(t["eat_s"])
-        self.reputation = float(scenario.get("reputation", t["reputation_initial"]))
+        rep = reputation if reputation is not None else scenario.get("reputation", t["reputation_initial"])
+        self.reputation = float(rep)
+        self.dishes = sorted(dishes) if dishes is not None else None  # day: chỉ món trong kế hoạch
         self.random_customers = scenario.get("random_customers", True)
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
@@ -64,8 +67,8 @@ class QuanSim:
         for e in self.customers:
             ids.reserve(e["id"])
         self._validate_fixture()
-        self.money = 0
-        self.earned = 0
+        self.money = money
+        self.earned = earned
         self.shift_earned = 0
         self.done = False
         self.reason = None
@@ -230,7 +233,8 @@ class QuanSim:
         return all(self._available(k) >= n for k, n in need.items())
 
     def _menu_ids(self):
-        return sorted(self.menu)  # id món theo mã Unicode
+        ids = sorted(self.menu)  # id món theo mã Unicode
+        return [d for d in ids if d in self.dishes] if self.dishes is not None else ids
 
     # --- giao diện cho runner -------------------------------------------------------
     def snapshot(self) -> dict:

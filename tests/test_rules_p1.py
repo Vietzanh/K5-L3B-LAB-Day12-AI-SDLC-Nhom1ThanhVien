@@ -135,7 +135,8 @@ class GatherHarvestCatch(unittest.TestCase):
                 {"id": "F3", "kind": "ca_loc", "pos": [30, 11.5]}]
         inputs = [{"tick": 0, "catch": True}, {"tick": 1, "catch": False}, {"tick": 28, "catch": True},
                   {"tick": 29, "catch": False}, {"tick": 30, "catch": True}]
-        rows, _ = run_case("gather", {"player": {"pos": [30, 10]}, "fish": fish}, inputs, ticks=32)
+        # v1.1: cá fixture chỉ đứng yên khi random_fish=false (nếu không chúng bơi 1.5 m/s)
+        rows, _ = run_case("gather", {"player": {"pos": [30, 10]}, "fish": fish, "random_fish": False}, inputs, ticks=32)
         caught = events(rows, "fish_caught")
         # F2 và F10 cùng cách 1 m -> F2 (id nhỏ, F2 < F10); tick 28 còn hồi chiêu; tick 30 bắt F10
         self.assertEqual([(e["tick"], e["data"]["fish_id"]) for e in caught], [(1, "F2"), (31, "F10")])
@@ -206,7 +207,8 @@ class QuanCustomers(unittest.TestCase):
         self.assertEqual(events(rows)[0]["name"], "no_dish")
 
     def test_no_table_skips_turn(self):
-        block = {"stock": {"ca_loc": 2}, "customers": [cust(order_tick=0)]}
+        # v1.1: quán có 4 bàn T1–T4 -> phải kín cả 4 bàn mới bỏ lượt
+        block = {"stock": {"ca_loc": 5}, "customers": [cust(id=f"C{i}", table_id=f"T{i}") for i in range(1, 5)]}
         rows, _ = run_case("quan", block, ticks=121, every=60)
         self.assertEqual(events(rows), [])
 
@@ -288,16 +290,9 @@ class QuanService(unittest.TestCase):
         self.assertEqual(names(rows), [(1, "cook_started")])
 
     def test_closing_pays_eaters_and_releases_waiters_without_penalty(self):
-        block = {"time_left_ticks": 1, "stock": {"ca_loc": 1},
-                 "customers": [cust(id="C1", table_id="T1"),
-                               cust(id="C2", table_id="T2", state="eating", order_status="served",
-                                    eat_ticks_left=300, base_price=60, tip=12, reserved={})],
-                 "tables": [{"id": "T1"}]}
-        with self.assertRaises(AssertionError):  # T2 chưa có trong preset v1.0 -> mã 2
-            run_case("quan", block, ticks=1)
-        block["customers"][1]["table_id"] = "T1"
-        block["customers"][0]["table_id"] = "T1"
-        block["customers"] = [block["customers"][1]]
+        # v1.1: bỏ phần "T2 chưa có -> mã 2" của Phase 1 vì preset chuẩn đã có T2–T4
+        block = {"time_left_ticks": 1,
+                 "customers": [cust(state="eating", order_status="served", eat_ticks_left=300, base_price=60, tip=12)]}
         rows, _ = run_case("quan", block, ticks=3)
         self.assertEqual(names(rows), [(1, "paid"), (1, "quan_end")])
         self.assertEqual(events(rows, "paid")[0]["data"]["reason"], "closing")
