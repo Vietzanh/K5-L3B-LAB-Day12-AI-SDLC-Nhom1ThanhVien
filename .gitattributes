@@ -1,0 +1,2 @@
+# Script shell chạy trong WSL/Linux: luôn LF (CRLF làm bash báo lỗi `$'\r'`).
+*.sh text eol=lf
