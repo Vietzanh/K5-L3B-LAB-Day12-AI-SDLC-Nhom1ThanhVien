@@ -1,10 +1,10 @@
-"""Buổi sáng — Lặn & Hái (`gather`). Luật theo PRD-0 mục F + Ticket-02 (Test Contract v1.1).
+"""Buổi sáng — Lặn & Hái (`gather`). Luật theo PRD-0 mục F + Ticket-02 (v1.1) + Ticket-03 (v1.2, độ tươi).
 
 Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` độ sâu hướng xuống, d = 0 là mặt nước).
 `move = [x, d]`: thành phần thứ hai DƯƠNG = bơi xuống. Hướng mặt là góc từ +x, dương = xuống.
 
 Thứ tự một bước (v1.1 mục 4.5):
-  1. đồng hồ, hồi bắt, giảm bất tử, hồi nút (node_regrown)
+  1. đồng hồ, hồi bắt, giảm bất tử, hồi nút (node_regrown), hao tươi hàng có sẵn trong giỏ (spoiled theo id)
   2. bơi + chặn mép (dive/surface), oxy theo d cuối bước, ngạt (choke) -> Máu 0: faint + gather_end
   3. Cá Sấu theo id (recoil / patrol / chase), rồi tối đa MỘT hit -> Máu 0: faint + gather_end
   4. interact: bến trước, rồi hái (chỉ ở mặt nước)
@@ -15,7 +15,7 @@ Thứ tự một bước (v1.1 mục 4.5):
 import math
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import SCALE, inventory_doc, to_units, view
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -50,7 +50,14 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        fr = tuning["freshness"]
+        self.fresh_initial = to_units(fr["initial"])
+        self.decay = int(round(fr["gather_decay_per_s"] * SCALE / TICK))
+        self.spoil_u = fr["spoiled_below"] * SCALE
+        # giỏ: cá thể {id, kind, u} theo thứ tự nhặt (cuối mảng là mới nhất)
+        self.hold = [{"id": it["id"], "kind": it["kind"], "u": to_units(it["fresh"])} for it in scenario.get("hold", [])]
+        for it in self.hold:
+            ids.reserve(it["id"])
         self.duration = _ticks(t["duration_s"])
         self.time_left_ticks = scenario.get("time_left_ticks", self.duration)
         self.phase_tick = 0
@@ -102,8 +109,9 @@ class GatherSim:
                 "recoil_dir": [float(c) for c in m["recoil_dir"]] if m.get("recoil_dir") is not None else None}
 
     # --- giao diện cho runner -------------------------------------------------------
-    def inventory_items(self) -> dict:
-        return hold_to_items(self.hold)
+    def inventory_items(self) -> list:
+        """Cá thể trong giỏ (nội bộ, có `u`) để ghi file kho / bàn giao trong day."""
+        return [dict(it) for it in self.hold]
 
     def snapshot(self) -> dict:
         return {
@@ -112,7 +120,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.hp_max, "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": [view(it) for it in self.hold], "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -138,6 +146,11 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        for it in sort_by_id(self.hold):  # hàng có sẵn ở đầu bước; hàng mới hao từ bước sau
+            before = it["u"]
+            it["u"] = max(0, before - self.decay)
+            if before >= self.spoil_u > it["u"]:
+                events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "hold"}))
         # 2. bơi + chặn mép, so phía mặt nước đầu/cuối bước
         was_surface = self._at_surface()
         self._move(inp)
@@ -213,7 +226,7 @@ class GatherSim:
             events.append(("hold_full", {"action": "gather", "node_id": node["id"],
                                          "required": amount, "free": self._free()}))
             return
-        self.hold.extend([node["kind"]] * amount)
+        self._add(node["kind"], amount)
         node["regrow_ticks"] = _ticks(self.t["regrow_s"])
         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
@@ -226,10 +239,14 @@ class GatherSim:
             events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
                                          "required": y, "free": self._free()}))
             return
-        self.hold.extend([fish["kind"]] * y)
+        self._add(fish["kind"], y)
         self.fish = [f for f in self.fish if f["id"] != fish["id"]]
         self.catch_cd_ticks = _ticks(self.t["catch_cooldown_s"])
         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": y}))
+
+    def _add(self, kind, n):
+        for _ in range(n):
+            self.hold.append({"id": self.ids.new("I"), "kind": kind, "u": self.fresh_initial})
 
     def _free(self) -> int:
         return int(self.t["hold_capacity"]) - len(self.hold)
@@ -238,7 +255,7 @@ class GatherSim:
         """Bỏ n món cuối giỏ (nhặt sau mất trước); trả mảng theo thứ tự bỏ."""
         lost = []
         for _ in range(min(n, len(self.hold))):
-            lost.append(self.hold.pop())
+            lost.append(view(self.hold.pop()))
         return lost
 
     def _faint(self, cause, events):
@@ -251,7 +268,7 @@ class GatherSim:
     def _finish(self, reason, events):
         self.done = True
         self.reason = reason
-        events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()}}))
+        events.append(("gather_end", {"reason": reason, "inventory": inventory_doc(self.hold)}))
 
     def _move(self, inp):
         speed = self.t["swim_speed"]

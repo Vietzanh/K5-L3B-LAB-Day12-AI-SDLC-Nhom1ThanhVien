@@ -14,3 +14,7 @@
 | 10 | Phase 2 | Bất tử 90 tick đặt ở tick t: bị chạm lại từ tick nào? | Từ t + 90, cùng quy ước "cooldown L đặt ở t dùng lại từ t+L" của PRD-0 F. | Vietzanh |
 | 11 | Phase 2 | `day.upgrades` khai trong scenario có hiệu lực ngay Ngày 1? | Có: active_upgrades = upgrades lúc dựng Ngày đầu. | Vietzanh |
 | 12 | Phase 2 | DayIntro/EveningIntro/DayResult có phải pha headless không? | Không: là màn hình của cửa sổ chơi; khi hiện thì cửa sổ ngừng bước sim (headless chuyển pha thẳng gather→quan→shop như Contract 4.5). | Vietzanh |
+| 13 | Phase 3 | Nhiều đơn cùng có phần giữ vừa ươn: nhả hết rồi giữ lại, hay xử lý tuần tự? | Tuần tự theo (order_tick, id bàn): mỗi đơn nhả toàn bộ phần giữ của mình rồi thử giữ lại ngay một lần. | Vietzanh |
+| 14 | Phase 3 | Độ chính xác độ tươi | 240 đơn vị nguyên / điểm (gợi ý của ticket, ADR-0001); fixture không biểu diễn chính xác thì giữ số thực. | Vietzanh |
+| 15 | Phase 3 | JSONL làm tròn 3 chữ số, nhưng ticket yêu cầu "so chính xác" độ tươi snapshot quán với file kho | Không làm tròn riêng trường `fresh` trong JSONL (sửa `chonoi/jsonl.py` của khung, có ghi lý do); vẫn tất định và vẫn đạt nếu bộ chấm dùng dung sai ±0.01. | Vietzanh |
+| 16 | Phase 3 | `base_price` khi chốt theo độ tươi có thể làm giá ngay khi nấu tụt 1k (vd. 60 → 59 vì hao 1 đơn vị trước khi nấu) | Đúng theo công thức floor của ticket; giữ nguyên. | Vietzanh |
