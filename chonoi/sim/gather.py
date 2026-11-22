@@ -138,11 +138,11 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            if self._at_surface():
+                self._harvest(events)
         # 4. bắt cá
-        if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+        if inp.pressed("catch") and self.catch_cd_ticks == 0 and not self._at_surface():
+            self._catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -154,6 +154,42 @@ class GatherSim:
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
+
+    def _nearest(self, coll, radius):
+        """Thực thể gần nhất trong bán kính (tính cả đúng mép), hòa theo id."""
+        best = None
+        for e in sort_by_id(coll):
+            dd = math.dist(self.pos, e["pos"])
+            if dd <= radius and (best is None or dd < best[0]):
+                best = (dd, e)
+        return best[1] if best else None
+
+    def _harvest(self, events):
+        node = self._nearest([n for n in self.nodes if n["regrow_ticks"] == 0], self.t["interact_radius"])
+        if node is None:
+            return
+        amount = int(self.t["node_yield"])
+        if self._free() < amount:
+            events.append(("hold_full", {"action": "gather", "node_id": node["id"],
+                                         "required": amount, "free": self._free()}))
+            return
+        self.hold.extend([node["kind"]] * amount)
+        node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
+
+    def _catch(self, events):
+        fish = self._nearest(self.fish, self.t["catch_radius"])
+        if fish is None:
+            return  # không có đàn trong tầm: không sự kiện, không hồi chiêu
+        y = int(self.t["fish_yield"][fish["kind"]])
+        if self._free() < y:
+            events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
+                                         "required": y, "free": self._free()}))
+            return
+        self.hold.extend([fish["kind"]] * y)
+        self.fish = [f for f in self.fish if f["id"] != fish["id"]]
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": y}))
 
     def _free(self) -> int:
         return int(self.t["hold_capacity"]) - len(self.hold)

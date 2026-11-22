@@ -94,5 +94,88 @@ class GatherOxygen(unittest.TestCase):
         self.assertEqual(rows[-1]["reason"], "fainted")
 
 
+PRESS_INTERACT = [{"tick": 0, "interact": True}]
+
+
+class GatherHarvestCatch(unittest.TestCase):
+    """Lát 2: hái, bắt cá, cập bến, ghi kho."""
+
+    def test_harvest_exactly_at_radius_edge_sets_regrow(self):
+        block = {"player": {"pos": [20, 0]}, "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [22, 0]}],
+                 "fish": []}
+        rows, _ = run_case("gather", block, PRESS_INTERACT, ticks=2)
+        self.assertEqual(events(rows, "gather")[0], {"type": "event", "tick": 1, "phase": "gather", "name": "gather",
+                                                     "data": {"node_id": "N1", "kind": "bong_dien_dien", "amount": 1}})
+        s = snap_at(rows, 1)
+        self.assertEqual(s["hold"], ["bong_dien_dien"])
+        self.assertEqual(s["nodes"][0]["regrow_ticks"], 1200)
+        self.assertFalse(s["nodes"][0]["ready"])
+
+    def test_node_regrown_after_1200_ticks_and_harvest_again(self):
+        block = {"player": {"pos": [20, 0]}, "fish": [],
+                 "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [21, 0], "regrow_ticks": 3}]}
+        rows, _ = run_case("gather", block, [{"tick": 1, "interact": True}], ticks=6)
+        self.assertEqual([e["tick"] for e in events(rows, "node_regrown")], [3])
+        self.assertEqual(events(rows, "gather"), [], "bước 1 nút còn regrow 1: chưa hái được")
+        rows, _ = run_case("gather", block, [{"tick": 2, "interact": True}], ticks=6)
+        self.assertEqual(names(rows), [(3, "node_regrown"), (3, "gather")], "mọc lại rồi hái ngay cùng bước")
+
+    def test_no_harvest_underwater_and_hold_full(self):
+        node = [{"id": "N1", "kind": "bong_sung", "pos": [22, 0]}]
+        rows, _ = run_case("gather", {"player": {"pos": [22, 1]}, "nodes": node, "fish": []}, PRESS_INTERACT, ticks=2)
+        self.assertEqual(events(rows), [])
+        rows, _ = run_case("gather", {"player": {"pos": [22, 0]}, "nodes": node, "fish": [], "hold": ["ca_loc"] * 12},
+                           PRESS_INTERACT, ticks=2)
+        self.assertEqual([e["data"] for e in events(rows)],
+                         [{"action": "gather", "node_id": "N1", "required": 1, "free": 0}])
+        self.assertEqual(snap_at(rows, 1)["nodes"][0]["regrow_ticks"], 0)
+
+    def test_catch_nearest_tie_by_id_and_cooldown(self):
+        fish = [{"id": "F10", "kind": "ca_linh", "pos": [31, 10]}, {"id": "F2", "kind": "ca_loc", "pos": [29, 10]},
+                {"id": "F3", "kind": "ca_loc", "pos": [30, 11.5]}]
+        inputs = [{"tick": 0, "catch": True}, {"tick": 1, "catch": False}, {"tick": 28, "catch": True},
+                  {"tick": 29, "catch": False}, {"tick": 30, "catch": True}]
+        rows, _ = run_case("gather", {"player": {"pos": [30, 10]}, "fish": fish}, inputs, ticks=32)
+        caught = events(rows, "fish_caught")
+        # F2 và F10 cùng cách 1 m -> F2 (id nhỏ, F2 < F10); tick 28 còn hồi chiêu; tick 30 bắt F10
+        self.assertEqual([(e["tick"], e["data"]["fish_id"]) for e in caught], [(1, "F2"), (31, "F10")])
+        self.assertEqual(caught[0]["data"], {"fish_id": "F2", "kind": "ca_loc", "yield": 1})
+        self.assertEqual(snap_at(rows, 1)["player"]["catch_cd_ticks"], 30)
+
+    def test_catch_not_at_surface_and_hold_full_keeps_school(self):
+        fish = [{"id": "F1", "kind": "ca_linh", "pos": [30, 1]}]
+        rows, _ = run_case("gather", {"player": {"pos": [30, 0]}, "fish": fish}, [{"tick": 0, "catch": True}], ticks=2)
+        self.assertEqual(events(rows), [])
+        rows, _ = run_case("gather", {"player": {"pos": [30, 1]}, "fish": fish, "hold": ["ca_loc"] * 10},
+                           [{"tick": 0, "catch": True}], ticks=2)
+        self.assertEqual([e["data"] for e in events(rows)],
+                         [{"action": "catch", "fish_id": "F1", "required": 3, "free": 2}])
+        s = snap_at(rows, 1)
+        self.assertEqual(len(s["fish"]), 1)
+        self.assertEqual(s["player"]["catch_cd_ticks"], 0)
+
+    def test_catch_yield_ca_linh_3(self):
+        rows, inv = run_case("gather", {"player": {"pos": [30, 5], "oxygen_ticks": 5},
+                                        "fish": [{"id": "F1", "kind": "ca_linh", "pos": [31, 5]}], "time_left_ticks": 2},
+                             [{"tick": 0, "catch": True}], ticks=5)
+        self.assertEqual(snap_at(rows, 1)["hold"], ["ca_linh"] * 3)
+        self.assertEqual(inv, {"items": {"ca_linh": 3}})
+
+    def test_dock_has_priority_over_harvest(self):
+        block = {"player": {"pos": [4, 0]}, "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [5, 0]}], "fish": []}
+        rows, inv = run_case("gather", block, PRESS_INTERACT, ticks=3)
+        self.assertEqual(names(rows), [(1, "gather_end")])
+        self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "docked")
+        self.assertEqual(inv, {"items": {}})
+
+    def test_harvest_on_last_step_goes_into_inventory(self):
+        block = {"player": {"pos": [20, 0]}, "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [21, 0]}],
+                 "fish": [], "time_left_ticks": 1, "hold": ["ca_loc"]}
+        rows, inv = run_case("gather", block, PRESS_INTERACT, ticks=5)
+        self.assertEqual(names(rows), [(1, "gather"), (1, "gather_end")])
+        self.assertEqual(inv, {"items": {"bong_sung": 1, "ca_loc": 1}})
+        self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], inv)
+
+
 if __name__ == "__main__":
     unittest.main()
