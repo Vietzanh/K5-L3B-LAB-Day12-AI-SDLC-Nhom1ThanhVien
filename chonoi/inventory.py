@@ -10,7 +10,9 @@ import tempfile
 
 from .errors import BadInput
 
-KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+from .contract import INGREDIENTS
+
+KINDS_P1 = INGREDIENTS  # v1.1: 6 nguyên liệu (giữ tên cũ cho mã đang import)
 
 
 def validate_items(items, kinds=KINDS_P1):
