@@ -1,5 +1,12 @@
 # Changelog
 
+## Phase 4 — v1.0.0, contract v1.3 (tag `phase-4`, Release `v1.0.0`)
+- `bench_cmd` (`python3 -m chonoi.bench --seed --duration --out`): render phần mềm cảnh lặn 1280×720, làm nóng 3 s, xuất avg_fps / p1_low_fps / frames / measured_s / load_ms.
+- `soak_cmd` (`python3 -m chonoi.soak --seed --days --out`): N Ngày trong một tiến trình bằng bot tất định, đếm crash.
+- `contract_version` 1.3, `run_cmd` mở thẳng vòng 5 Ngày; gameplay/tuning/kho/JSONL giữ như v1.2.
+- Sửa: uy tín chạm trần xuất `5.0` (số thực) thay vì `5`.
+- Chơi thử ba cảnh báo ở chế độ tương phản cao; LICENSE, CREDITS, release notes; thử clone sạch.
+
 ## Phase 3 — contract v1.2 (tag `phase-3`) — Change Request "Mùa Nước Nổi"
 - **Breaking — kho cá thể:** file kho đổi từ `{"items":{"ca_loc":1}}` sang `{"items":[{"id":"I1","kind":"ca_loc","fresh":100}]}` (sắp theo id). Kho đếm cũ → mã 2.
 - **Breaking — scenario:** `gather.hold` và `quan.stock` là mảng cá thể `{id, kind, fresh}`; `customers[].reserved` là mảng id cá thể.

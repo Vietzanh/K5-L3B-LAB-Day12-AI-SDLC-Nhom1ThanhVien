@@ -6,7 +6,12 @@
 Út Sen lặn bắt cá, hái bông trên sông Chín Khúc buổi sáng (`gather`), tối mở quán trên nhà bè của Má Tư (`quan`).
 Phần mang về (file kho) quyết định quán bán được món nào.
 
-## Chạy từ clone sạch (macOS / Linux, cần Python ≥ 3.8, không cài thêm gì)
+## Yêu cầu môi trường
+
+- macOS hoặc Linux (Windows: dùng **WSL**), **Python ≥ 3.8** (chỉ thư viện chuẩn, không cần `pip install`), một trình duyệt hiện đại (Chrome/Edge/Firefox/Safari).
+- Không cần GPU; cửa sổ chơi là máy chủ HTTP cục bộ `127.0.0.1:8000` + Canvas 2D trong trình duyệt.
+
+## Chạy từ clone sạch (3 lệnh)
 
 ```bash
 git clone https://github.com/Vietzanh/K5-L3B-LAB-Day12-AI-SDLC-Nhom1ThanhVien.git
@@ -54,9 +59,24 @@ bash tools/smoke_day.sh docs/proof/phase-3                          # smoke day 
 bash tools/smoke_fresh.sh docs/proof/phase-3                        # ngưỡng tươi 30 (scenario mẫu Ticket-03)
 ```
 
-- Test Contract và số liệu: [`game.contract.json`](game.contract.json) (`contract_version` 1.2).
+- Test Contract và số liệu: [`game.contract.json`](game.contract.json) (`contract_version` 1.3; gameplay theo v1.2).
 - Hợp đồng file kho + danh sách sự kiện: [`docs/contracts/README.md`](docs/contracts/README.md). Ví dụ kho hợp lệ (v1.2): `{"items":[{"id":"I1","kind":"ca_linh","fresh":100}]}`.
-- Test của nhóm: [`tests/test_rules_p1.py`](tests/test_rules_p1.py), [`tests/test_rules_p2.py`](tests/test_rules_p2.py), [`tests/test_rules_p3.py`](tests/test_rules_p3.py) (hộp đen, từng biên của PRD). Ảnh HUD: `python3 tools/hud_demo.py --scene gather|quan|shop|menu`.
+- Test của nhóm: [`tests/test_rules_p1.py`](tests/test_rules_p1.py), [`tests/test_rules_p2.py`](tests/test_rules_p2.py), [`tests/test_rules_p3.py`](tests/test_rules_p3.py), [`tests/test_p4_release.py`](tests/test_p4_release.py) (hộp đen, từng biên của PRD). Ảnh HUD: `python3 tools/hud_demo.py --scene gather|quan|shop|menu`.
+
+## Benchmark và soak (Test Contract v1.3)
+
+```bash
+python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json    # render 1280×720, làm nóng 3 s, đo 30 s
+python3 -m chonoi.soak --seed 7 --days 10 --out soak.json           # 10 Ngày trong một tiến trình, bot tất định
+bash tools/clean_clone_check.sh . main docs/proof/phase-4/clean-clone.txt   # thử lại từ clone sạch
+```
+
+Kết quả trên máy nhóm (WSL, Python 3.10): bench avg 1106 FPS, 1% low 620 FPS, load 200 ms; soak 10/10 Ngày, 0 crash — xem [`docs/proof/phase-4/`](docs/proof/phase-4/).
+`bench` dùng **trình render phần mềm** (Python thuần) vẽ cùng bố cục cảnh lặn như cửa sổ chơi, vì thư viện chuẩn không có đồ họa.
+
+## Phát hành
+
+GitHub Release **v1.0.0** (tag `phase-4`): release notes [`docs/release-notes-v1.0.0.md`](docs/release-notes-v1.0.0.md), gói `quan-an-cho-noi-v1.0.0.zip` (tạo bằng `git archive`). Lịch sử theo phase: [`CHANGELOG.md`](CHANGELOG.md). Giấy phép: [`LICENSE`](LICENSE), nguồn: [`CREDITS.md`](CREDITS.md).
 
 ## Cách làm việc (nhóm 1 người + agent AI)
 
