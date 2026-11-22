@@ -176,6 +176,177 @@ class GatherHarvestCatch(unittest.TestCase):
         self.assertEqual(inv, {"items": {"bong_sung": 1, "ca_loc": 1}})
         self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], inv)
 
+STOVE = [2, 8]
+TABLE = [9, 2]
+
+
+def cust(**kw):
+    c = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+    c.update(kw)
+    return c
+
+
+class QuanCustomers(unittest.TestCase):
+    """Lát 3: khách theo lịch, chọn món đủ nguyên liệu, giữ chỗ, kiên nhẫn, no_dish."""
+
+    def test_first_customer_at_tick_120_reserves_recipe(self):
+        rows, _ = run_case("quan", {"stock": {"ca_loc": 1}}, ticks=121, every=10)
+        arr = events(rows, "customer_arrived")
+        self.assertEqual([(e["tick"], e["data"]) for e in arr],
+                         [(120, {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"})])
+        c = snap_at(rows, 120)["customers"][0]
+        self.assertEqual((c["order_tick"], c["patience_ticks_left"], c["reserved"], c["order_status"]),
+                         (120, 3600, {"ca_loc": 1}, "reserved"))
+        self.assertEqual(snap_at(rows, 121)["customers"][0]["patience_ticks_left"], 3599, "giảm từ bước sau")
+        self.assertEqual(snap_at(rows, 120)["tables"][0]["customer_id"], "C1")
+
+    def test_no_dish_when_stock_short(self):
+        rows, _ = run_case("quan", {"stock": {"bong_sung": 1}}, ticks=121, every=60)
+        self.assertEqual([(e["tick"], e["data"]) for e in events(rows)], [(120, {})])
+        self.assertEqual(events(rows)[0]["name"], "no_dish")
+
+    def test_no_table_skips_turn(self):
+        block = {"stock": {"ca_loc": 2}, "customers": [cust(order_tick=0)]}
+        rows, _ = run_case("quan", block, ticks=121, every=60)
+        self.assertEqual(events(rows), [])
+
+    def test_patience_zero_leaves_and_lowers_reputation(self):
+        block = {"stock": {"ca_loc": 1}, "customers": [cust(patience_ticks_left=2)]}
+        rows, _ = run_case("quan", block, ticks=4)
+        left = events(rows, "customer_left")
+        self.assertEqual([(e["tick"], e["data"]) for e in left],
+                         [(2, {"order_id": "C1", "table_id": "T1", "reason": "patience", "reputation": 2.5})])
+        self.assertEqual(snap_at(rows, 2)["customers"], [])
+        self.assertEqual(snap_at(rows, 2)["stock"], {"ca_loc": 1}, "nhả phần giữ, tồn vật lý giữ nguyên")
+
+    def test_default_reserved_by_order_tick_then_table(self):
+        block = {"stock": {"ca_loc": 1}, "customers": [cust(id="C1", table_id="T1", order_tick=5)]}
+        rows, _ = run_case("quan", block, ticks=0)
+        self.assertEqual(snapshots(rows)[0]["customers"][0]["reserved"], {"ca_loc": 1})
+
+
+class QuanService(unittest.TestCase):
+    """Lát 4: bếp, bưng, phục vụ, tiền, boa, uy tín, đóng ca."""
+
+    def test_cook_pick_serve_pay_full_flow(self):
+        block = {"player": {"pos": STOVE}, "stock": {"ca_loc": 1}, "customers": [cust()]}
+        rows, _ = run_case("quan", block, [{"tick": 0, "interact": True}], ticks=2)
+        cs = events(rows, "cook_started")[0]
+        self.assertEqual((cs["tick"], cs["data"]), (1, {"stove_id": "B1", "order_id": "C1",
+                                                         "dish_id": "ca_loc_nuong_trui", "items": ["ca_loc"],
+                                                         "base_price": 60}))
+        s = snap_at(rows, 1)
+        self.assertEqual(s["stock"], {})
+        self.assertEqual(s["stoves"][0]["cook_ticks_left"], 360)
+        self.assertEqual(s["customers"][0]["order_status"], "assigned")
+
+    def test_dish_ready_and_pick(self):
+        dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+        block = {"player": {"pos": STOVE}, "customers": [cust(order_status="assigned")],
+                 "stoves": [{"id": "B1", "state": "cooking", "dish": dish, "cook_ticks_left": 2}]}
+        rows, _ = run_case("quan", block, [{"tick": 3, "interact": True}], ticks=5)
+        self.assertEqual(names(rows), [(2, "dish_ready"), (4, "dish_picked")])
+        s = snap_at(rows, 3)
+        self.assertEqual((s["stoves"][0]["state"], s["stoves"][0]["ready_ticks"]), ("ready", 1))
+        s = snap_at(rows, 4)
+        self.assertEqual(s["hand"], dish)
+        self.assertEqual(s["stoves"][0]["state"], "idle")
+
+    def _serve(self, patience):
+        dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+        block = {"player": {"pos": TABLE}, "hand": dish,
+                 "customers": [cust(order_status="assigned", patience_ticks_left=patience)]}
+        rows, _ = run_case("quan", block, [{"tick": 0, "interact": True}], ticks=602, every=601)
+        return rows
+
+    def test_serve_with_tip_then_paid_after_eating(self):
+        rows = self._serve(1801)  # sau bước 1 còn 1800 = 50% -> có boa
+        sv = events(rows, "served")[0]
+        self.assertEqual((sv["tick"], sv["data"]), (1, {"order_id": "C1", "table_id": "T1",
+                                                         "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": 1800,
+                                                         "base_price": 60, "tip": 12}))
+        pd = events(rows, "paid")[0]
+        self.assertEqual((pd["tick"], pd["data"]), (601, {"order_id": "C1", "table_id": "T1", "base_price": 60,
+                                                           "tip": 12, "amount": 72, "reason": "finished_eating"}))
+        s = snap_at(rows, 601)
+        self.assertEqual((s["money"], s["earned"], s["reputation"], s["score"]), (72, 72, 3.2, 372))
+
+    def test_serve_below_half_patience_no_tip(self):
+        rows = self._serve(1800)  # sau bước 1 còn 1799 < 50%
+        self.assertEqual(events(rows, "served")[0]["data"]["tip"], 0)
+        self.assertEqual(snap_at(rows, 601)["reputation"], 3.0)
+
+    def test_serve_on_tick_patience_hits_zero_is_valid(self):
+        rows = self._serve(1)
+        self.assertEqual(names(rows)[0], (1, "served"))
+        self.assertEqual(events(rows, "customer_left"), [])
+
+    def test_stove_before_table_on_tie(self):
+        block = {"player": {"pos": [5, 5]}, "stock": {"ca_loc": 1}, "customers": [cust()],
+                 "stoves": [{"id": "B1", "pos": [5, 6]}], "tables": [{"id": "T1", "pos": [5, 4]}]}
+        rows, _ = run_case("quan", block, [{"tick": 0, "interact": True}], ticks=1)
+        self.assertEqual(names(rows), [(1, "cook_started")])
+
+    def test_closing_pays_eaters_and_releases_waiters_without_penalty(self):
+        block = {"time_left_ticks": 1, "stock": {"ca_loc": 1},
+                 "customers": [cust(id="C1", table_id="T1"),
+                               cust(id="C2", table_id="T2", state="eating", order_status="served",
+                                    eat_ticks_left=300, base_price=60, tip=12, reserved={})],
+                 "tables": [{"id": "T1"}]}
+        with self.assertRaises(AssertionError):  # T2 chưa có trong preset v1.0 -> mã 2
+            run_case("quan", block, ticks=1)
+        block["customers"][1]["table_id"] = "T1"
+        block["customers"][0]["table_id"] = "T1"
+        block["customers"] = [block["customers"][1]]
+        rows, _ = run_case("quan", block, ticks=3)
+        self.assertEqual(names(rows), [(1, "paid"), (1, "quan_end")])
+        self.assertEqual(events(rows, "paid")[0]["data"]["reason"], "closing")
+        self.assertEqual(events(rows, "quan_end")[0]["data"], {"reason": "time", "money": 72, "earned": 72,
+                                                               "shift_earned": 72, "reputation": 3.2})
+        self.assertEqual(rows[-1]["score"], 372)
+
+    def test_closing_waiter_leaves_without_reputation_loss(self):
+        rows, _ = run_case("quan", {"time_left_ticks": 1, "stock": {"ca_loc": 1}, "customers": [cust()]}, ticks=3)
+        self.assertEqual([e["data"]["reason"] for e in events(rows, "customer_left")], ["closing"])
+        self.assertEqual(rows[-1]["reputation"], 3.0)
+
+    def test_leaving_customer_discards_dish_in_hand(self):
+        dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+        rows, _ = run_case("quan", {"hand": dish, "customers": [cust(order_status="assigned", patience_ticks_left=1)]},
+                           ticks=2)
+        self.assertEqual(snap_at(rows, 1)["hand"], None)
+
+
+class QuanFixtureErrors(unittest.TestCase):
+    def _code(self, block):
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), {"quan": block})
+            return run_headless("--mode", "quan", "--seed", "1", "--ticks", "0", "--scenario", sc,
+                                "--out", w.path("o.jsonl"))[0]
+
+    def test_contradictions_exit_2(self):
+        dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+        bad = [
+            {"stock": {}, "customers": [cust()]},                                         # giữ quá tồn
+            {"stock": {"ca_loc": 2}, "customers": [cust(reserved={"ca_loc": 2})]},         # giữ khác công thức
+            {"customers": [cust(order_status="assigned")]},                                # assigned thiếu món
+            {"hand": dish, "customers": [cust(order_status="assigned")],
+             "stoves": [{"id": "B1", "state": "ready", "dish": dish}]},                    # bếp và tay cùng đơn
+            {"customers": [cust(state="eating", order_status="served", eat_ticks_left=5)]},  # thiếu base_price/tip
+            {"stock": {"ca_loc": 1}, "customers": [cust(dish_id="pho_bo")]},               # món ngoài phạm vi
+            {"stoves": [{"id": "B1", "state": "cooking"}]},                                 # cooking thiếu món/timer
+            {"hand": dish},                                                                 # món không có khách
+            {"stock": {"ca_loc": -1}},
+            {"customers": [cust(patience_ticks_left=-1)]},
+        ]
+        for b in bad:
+            self.assertEqual(self._code(b), 2, b)
+
+    def test_valid_fixture_exit_0(self):
+        dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+        ok = {"stock": {"ca_loc": 1}, "hand": dish, "customers": [cust(order_status="assigned")]}
+        self.assertEqual(self._code(ok), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
