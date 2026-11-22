@@ -8,3 +8,9 @@
 | 4 | Phase 1 | Id khách mới dùng tiền tố nào? PRD chỉ nói order_id = id khách. | Giả định `C1, C2…` (khớp fixture mẫu `C1` trong smoke test), cấp tiếp sau hậu tố lớn nhất đã nạp. | Vietzanh |
 | 5 | Phase 1 | `base_price`/`tip` của khách đang chờ (chưa chốt) xuất gì trong snapshot? | Giả định `null` tới khi chốt (giá lúc bắt đầu nấu, boa lúc phục vụ). | Vietzanh |
 | 6 | Phase 1 | "Chọn đều theo seed" món của khách | Luồng RNG riêng `customers`, `randrange` trên danh sách id món đủ nguyên liệu sắp theo Unicode. | Vietzanh |
+| 7 | Phase 2 | Hướng cá "theo seed": phân bố nào? | Đều trong [0°, 360°), luồng RNG `fish_turn` (đổi hướng) và `fish_spawn` (sinh + hướng ban đầu). | Vietzanh |
+| 8 | Phase 2 | 8 đàn đầu ca chọn thế nào? | Lặp đúng thủ tục sinh (trọng số loài chuẩn hóa, điểm cách > 1 m) 8 lần, không phát `fish_spawned`. | Vietzanh |
+| 9 | Phase 2 | Ngưỡng độ sâu phát hiện/chạm của Cá Sấu ("d ≥ 10") | Lấy cận dưới `depths` của loài (Cá Sấu 10) để dùng chung cho loài khác. | Vietzanh |
+| 10 | Phase 2 | Bất tử 90 tick đặt ở tick t: bị chạm lại từ tick nào? | Từ t + 90, cùng quy ước "cooldown L đặt ở t dùng lại từ t+L" của PRD-0 F. | Vietzanh |
+| 11 | Phase 2 | `day.upgrades` khai trong scenario có hiệu lực ngay Ngày 1? | Có: active_upgrades = upgrades lúc dựng Ngày đầu. | Vietzanh |
+| 12 | Phase 2 | DayIntro/EveningIntro/DayResult có phải pha headless không? | Không: là màn hình của cửa sổ chơi; khi hiện thì cửa sổ ngừng bước sim (headless chuyển pha thẳng gather→quan→shop như Contract 4.5). | Vietzanh |
