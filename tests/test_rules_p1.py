@@ -33,6 +33,22 @@ def run_case(mode, block, inputs=None, ticks=10, seed=1, every=1, extra=()):
         return rows, inv
 
 
+def items(*kinds_, start=1, fresh=100):
+    """v1.2: cá thể {id, kind, fresh} với id I<start>, I<start+1>…"""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": fresh} for i, k in enumerate(kinds_)]
+
+
+def kinds(arr):
+    return [x["kind"] for x in arr]
+
+
+def inv_counts(inv):
+    c = {}
+    for it in inv["items"]:
+        c[it["kind"]] = c.get(it["kind"], 0) + 1
+    return c
+
+
 def names(rows):
     return [(r["tick"], r["name"]) for r in events(rows)]
 
@@ -83,14 +99,16 @@ class GatherOxygen(unittest.TestCase):
 
     def test_faint_drops_hold_lifo_and_writes_empty_inventory(self):
         block = dict(DEEP, player={"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                     hold=["ca_loc", "bong_sung", "ca_linh"])
+                     hold=items("ca_loc", "bong_sung", "ca_linh"))
         rows, inv = run_case("gather", block, ticks=10)
         self.assertEqual(names(rows), [(1, "choke"), (1, "faint"), (1, "gather_end")])
         faint = events(rows, "faint")[0]["data"]
-        self.assertEqual(faint, {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})
+        # v1.2: lost là mảng cá thể theo thứ tự bỏ (LIFO)
+        self.assertEqual((faint["cause"], faint["hp"]), ("choke", 0))
+        self.assertEqual([(x["id"], x["kind"]) for x in faint["lost"]], [("I3", "ca_linh"), ("I2", "bong_sung"), ("I1", "ca_loc")])
         end = events(rows, "gather_end")[0]["data"]
-        self.assertEqual(end, {"reason": "fainted", "inventory": {"items": {}}})
-        self.assertEqual(inv, {"items": {}})
+        self.assertEqual(end, {"reason": "fainted", "inventory": {"items": []}})
+        self.assertEqual(inv, {"items": []})
         self.assertEqual(rows[-1]["reason"], "fainted")
 
 
@@ -107,7 +125,7 @@ class GatherHarvestCatch(unittest.TestCase):
         self.assertEqual(events(rows, "gather")[0], {"type": "event", "tick": 1, "phase": "gather", "name": "gather",
                                                      "data": {"node_id": "N1", "kind": "bong_dien_dien", "amount": 1}})
         s = snap_at(rows, 1)
-        self.assertEqual(s["hold"], ["bong_dien_dien"])
+        self.assertEqual(s["hold"], [{"id": "I1", "kind": "bong_dien_dien", "fresh": 100}], "hàng mới fresh 100, hao từ bước sau")
         self.assertEqual(s["nodes"][0]["regrow_ticks"], 1200)
         self.assertFalse(s["nodes"][0]["ready"])
 
@@ -124,7 +142,7 @@ class GatherHarvestCatch(unittest.TestCase):
         node = [{"id": "N1", "kind": "bong_sung", "pos": [22, 0]}]
         rows, _ = run_case("gather", {"player": {"pos": [22, 1]}, "nodes": node, "fish": []}, PRESS_INTERACT, ticks=2)
         self.assertEqual(events(rows), [])
-        rows, _ = run_case("gather", {"player": {"pos": [22, 0]}, "nodes": node, "fish": [], "hold": ["ca_loc"] * 12},
+        rows, _ = run_case("gather", {"player": {"pos": [22, 0]}, "nodes": node, "fish": [], "hold": items(*["ca_loc"] * 12)},
                            PRESS_INTERACT, ticks=2)
         self.assertEqual([e["data"] for e in events(rows)],
                          [{"action": "gather", "node_id": "N1", "required": 1, "free": 0}])
@@ -147,7 +165,7 @@ class GatherHarvestCatch(unittest.TestCase):
         fish = [{"id": "F1", "kind": "ca_linh", "pos": [30, 1]}]
         rows, _ = run_case("gather", {"player": {"pos": [30, 0]}, "fish": fish}, [{"tick": 0, "catch": True}], ticks=2)
         self.assertEqual(events(rows), [])
-        rows, _ = run_case("gather", {"player": {"pos": [30, 1]}, "fish": fish, "hold": ["ca_loc"] * 10},
+        rows, _ = run_case("gather", {"player": {"pos": [30, 1]}, "fish": fish, "hold": items(*["ca_loc"] * 10)},
                            [{"tick": 0, "catch": True}], ticks=2)
         self.assertEqual([e["data"] for e in events(rows)],
                          [{"action": "catch", "fish_id": "F1", "required": 3, "free": 2}])
@@ -159,22 +177,23 @@ class GatherHarvestCatch(unittest.TestCase):
         rows, inv = run_case("gather", {"player": {"pos": [30, 5], "oxygen_ticks": 5},
                                         "fish": [{"id": "F1", "kind": "ca_linh", "pos": [31, 5]}], "time_left_ticks": 2},
                              [{"tick": 0, "catch": True}], ticks=5)
-        self.assertEqual(snap_at(rows, 1)["hold"], ["ca_linh"] * 3)
-        self.assertEqual(inv, {"items": {"ca_linh": 3}})
+        self.assertEqual(kinds(snap_at(rows, 1)["hold"]), ["ca_linh"] * 3)
+        self.assertEqual(inv_counts(inv), {"ca_linh": 3})
 
     def test_dock_has_priority_over_harvest(self):
         block = {"player": {"pos": [4, 0]}, "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [5, 0]}], "fish": []}
         rows, inv = run_case("gather", block, PRESS_INTERACT, ticks=3)
         self.assertEqual(names(rows), [(1, "gather_end")])
         self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "docked")
-        self.assertEqual(inv, {"items": {}})
+        self.assertEqual(inv, {"items": []})
 
     def test_harvest_on_last_step_goes_into_inventory(self):
         block = {"player": {"pos": [20, 0]}, "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [21, 0]}],
-                 "fish": [], "time_left_ticks": 1, "hold": ["ca_loc"]}
+                 "fish": [], "time_left_ticks": 1, "hold": items("ca_loc")}
         rows, inv = run_case("gather", block, PRESS_INTERACT, ticks=5)
         self.assertEqual(names(rows), [(1, "gather"), (1, "gather_end")])
-        self.assertEqual(inv, {"items": {"bong_sung": 1, "ca_loc": 1}})
+        self.assertEqual(inv_counts(inv), {"bong_sung": 1, "ca_loc": 1})
+        self.assertEqual([x["id"] for x in inv["items"]], ["I1", "I2"], "kho sắp theo id; hàng mới cấp I2")
         self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], inv)
 
 STOVE = [2, 8]
@@ -191,54 +210,56 @@ class QuanCustomers(unittest.TestCase):
     """Lát 3: khách theo lịch, chọn món đủ nguyên liệu, giữ chỗ, kiên nhẫn, no_dish."""
 
     def test_first_customer_at_tick_120_reserves_recipe(self):
-        rows, _ = run_case("quan", {"stock": {"ca_loc": 1}}, ticks=121, every=10)
+        rows, _ = run_case("quan", {"stock": items("ca_loc")}, ticks=121, every=10)
         arr = events(rows, "customer_arrived")
         self.assertEqual([(e["tick"], e["data"]) for e in arr],
                          [(120, {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"})])
         c = snap_at(rows, 120)["customers"][0]
         self.assertEqual((c["order_tick"], c["patience_ticks_left"], c["reserved"], c["order_status"]),
-                         (120, 3600, {"ca_loc": 1}, "reserved"))
+                         (120, 3600, ["I1"], "reserved"))
         self.assertEqual(snap_at(rows, 121)["customers"][0]["patience_ticks_left"], 3599, "giảm từ bước sau")
         self.assertEqual(snap_at(rows, 120)["tables"][0]["customer_id"], "C1")
 
     def test_no_dish_when_stock_short(self):
-        rows, _ = run_case("quan", {"stock": {"bong_sung": 1}}, ticks=121, every=60)
+        rows, _ = run_case("quan", {"stock": items("bong_sung")}, ticks=121, every=60)
         self.assertEqual([(e["tick"], e["data"]) for e in events(rows)], [(120, {})])
         self.assertEqual(events(rows)[0]["name"], "no_dish")
 
     def test_no_table_skips_turn(self):
         # v1.1: quán có 4 bàn T1–T4 -> phải kín cả 4 bàn mới bỏ lượt
-        block = {"stock": {"ca_loc": 5}, "customers": [cust(id=f"C{i}", table_id=f"T{i}") for i in range(1, 5)]}
+        block = {"stock": items(*["ca_loc"] * 5), "customers": [cust(id=f"C{i}", table_id=f"T{i}") for i in range(1, 5)]}
         rows, _ = run_case("quan", block, ticks=121, every=60)
         self.assertEqual(events(rows), [])
 
     def test_patience_zero_leaves_and_lowers_reputation(self):
-        block = {"stock": {"ca_loc": 1}, "customers": [cust(patience_ticks_left=2)]}
+        block = {"stock": items("ca_loc"), "customers": [cust(patience_ticks_left=2)]}
         rows, _ = run_case("quan", block, ticks=4)
         left = events(rows, "customer_left")
         self.assertEqual([(e["tick"], e["data"]) for e in left],
                          [(2, {"order_id": "C1", "table_id": "T1", "reason": "patience", "reputation": 2.5})])
         self.assertEqual(snap_at(rows, 2)["customers"], [])
-        self.assertEqual(snap_at(rows, 2)["stock"], {"ca_loc": 1}, "nhả phần giữ, tồn vật lý giữ nguyên")
+        self.assertEqual(kinds(snap_at(rows, 2)["stock"]), ["ca_loc"], "nhả phần giữ, tồn vật lý giữ nguyên")
 
     def test_default_reserved_by_order_tick_then_table(self):
-        block = {"stock": {"ca_loc": 1}, "customers": [cust(id="C1", table_id="T1", order_tick=5)]}
+        block = {"stock": items("ca_loc"), "customers": [cust(id="C1", table_id="T1", order_tick=5)]}
         rows, _ = run_case("quan", block, ticks=0)
-        self.assertEqual(snapshots(rows)[0]["customers"][0]["reserved"], {"ca_loc": 1})
+        self.assertEqual(snapshots(rows)[0]["customers"][0]["reserved"], ["I1"])
 
 
 class QuanService(unittest.TestCase):
     """Lát 4: bếp, bưng, phục vụ, tiền, boa, uy tín, đóng ca."""
 
     def test_cook_pick_serve_pay_full_flow(self):
-        block = {"player": {"pos": STOVE}, "stock": {"ca_loc": 1}, "customers": [cust()]}
+        block = {"player": {"pos": STOVE}, "stock": items("ca_loc"), "customers": [cust()]}
         rows, _ = run_case("quan", block, [{"tick": 0, "interact": True}], ticks=2)
         cs = events(rows, "cook_started")[0]
+        # v1.2: items là cá thể; kho hao 1 đơn vị (1/240 điểm) ở đầu bước -> giá floor(60 × 99.9958/100) = 59
         self.assertEqual((cs["tick"], cs["data"]), (1, {"stove_id": "B1", "order_id": "C1",
-                                                         "dish_id": "ca_loc_nuong_trui", "items": ["ca_loc"],
-                                                         "base_price": 60}))
+                                                         "dish_id": "ca_loc_nuong_trui",
+                                                         "items": [{"id": "I1", "kind": "ca_loc", "fresh": 23999 / 240}],
+                                                         "base_price": 59}))
         s = snap_at(rows, 1)
-        self.assertEqual(s["stock"], {})
+        self.assertEqual(s["stock"], [])
         self.assertEqual(s["stoves"][0]["cook_ticks_left"], 360)
         self.assertEqual(s["customers"][0]["order_status"], "assigned")
 
@@ -284,7 +305,7 @@ class QuanService(unittest.TestCase):
         self.assertEqual(events(rows, "customer_left"), [])
 
     def test_stove_before_table_on_tie(self):
-        block = {"player": {"pos": [5, 5]}, "stock": {"ca_loc": 1}, "customers": [cust()],
+        block = {"player": {"pos": [5, 5]}, "stock": items("ca_loc"), "customers": [cust()],
                  "stoves": [{"id": "B1", "pos": [5, 6]}], "tables": [{"id": "T1", "pos": [5, 4]}]}
         rows, _ = run_case("quan", block, [{"tick": 0, "interact": True}], ticks=1)
         self.assertEqual(names(rows), [(1, "cook_started")])
@@ -301,7 +322,7 @@ class QuanService(unittest.TestCase):
         self.assertEqual(rows[-1]["score"], 372)
 
     def test_closing_waiter_leaves_without_reputation_loss(self):
-        rows, _ = run_case("quan", {"time_left_ticks": 1, "stock": {"ca_loc": 1}, "customers": [cust()]}, ticks=3)
+        rows, _ = run_case("quan", {"time_left_ticks": 1, "stock": items("ca_loc"), "customers": [cust()]}, ticks=3)
         self.assertEqual([e["data"]["reason"] for e in events(rows, "customer_left")], ["closing"])
         self.assertEqual(rows[-1]["reputation"], 3.0)
 
@@ -322,16 +343,20 @@ class QuanFixtureErrors(unittest.TestCase):
     def test_contradictions_exit_2(self):
         dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
         bad = [
-            {"stock": {}, "customers": [cust()]},                                         # giữ quá tồn
-            {"stock": {"ca_loc": 2}, "customers": [cust(reserved={"ca_loc": 2})]},         # giữ khác công thức
+            {"stock": [], "customers": [cust()]},                                          # giữ quá tồn
+            {"stock": items("ca_loc", "ca_loc"), "customers": [cust(reserved=["I1", "I2"])]},  # giữ khác công thức
+            {"stock": items("ca_loc", fresh=29), "customers": [cust(reserved=["I1"])]},    # giữ hàng ươn
+            {"stock": items("ca_loc"), "customers": [cust(reserved=["I9"])]},              # giữ id không có
+            {"stock": items("ca_loc", "ca_loc", start=3) + items("ca_loc", start=3)},      # id trùng
+            {"stock": {"ca_loc": 1}},                                                      # kho đếm (v1.0/1.1)
             {"customers": [cust(order_status="assigned")]},                                # assigned thiếu món
             {"hand": dish, "customers": [cust(order_status="assigned")],
              "stoves": [{"id": "B1", "state": "ready", "dish": dish}]},                    # bếp và tay cùng đơn
             {"customers": [cust(state="eating", order_status="served", eat_ticks_left=5)]},  # thiếu base_price/tip
-            {"stock": {"ca_loc": 1}, "customers": [cust(dish_id="pho_bo")]},               # món ngoài phạm vi
+            {"stock": items("ca_loc"), "customers": [cust(dish_id="pho_bo")]},               # món ngoài phạm vi
             {"stoves": [{"id": "B1", "state": "cooking"}]},                                 # cooking thiếu món/timer
             {"hand": dish},                                                                 # món không có khách
-            {"stock": {"ca_loc": -1}},
+            {"stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100.5}]},
             {"customers": [cust(patience_ticks_left=-1)]},
         ]
         for b in bad:
@@ -339,7 +364,7 @@ class QuanFixtureErrors(unittest.TestCase):
 
     def test_valid_fixture_exit_0(self):
         dish = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
-        ok = {"stock": {"ca_loc": 1}, "hand": dish, "customers": [cust(order_status="assigned")]}
+        ok = {"stock": items("ca_loc"), "hand": dish, "customers": [cust(order_status="assigned")]}
         self.assertEqual(self._code(ok), 0)
 
 

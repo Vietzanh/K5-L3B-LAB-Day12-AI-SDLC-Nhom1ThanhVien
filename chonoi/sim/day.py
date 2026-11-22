@@ -62,7 +62,10 @@ class DayGame:
         events.append(("gather", self.day, "day_start", {}))
         events.append(("gather", self.day, "day_plan", {"dishes": self.plan["dishes"],
                                                         "ingredients": self.plan["ingredients"]}))
-        self.cur = GatherSim(self.tuning, copy.deepcopy(self.gather_tpl), self.streams, self.ids, day=self.day,
+        tpl = copy.deepcopy(self.gather_tpl)
+        if self.day > 1 and tpl.get("hold"):  # v1.2: Ngày kế cấp id mới theo thứ tự mảng, giữ kind/fresh ban đầu
+            tpl["hold"] = [dict(it, id=self.ids.new("I")) for it in tpl["hold"]]
+        self.cur = GatherSim(self.tuning, tpl, self.streams, self.ids, day=self.day,
                              hp_max=hp_max, oxygen_max_s=oxy, money=self.money, earned=self.earned,
                              reputation=self.reputation)
         events.append(("gather", self.day, "phase_start", {}))

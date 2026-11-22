@@ -5,6 +5,8 @@ Mỗi bước: đồng hồ (phase_tick+1, còn lại −1) -> MỘT lệnh `buy
 Mua: trừ money (giữ earned/điểm), cấp vừa mua ghi vào `upgrades` (đã mua); hiệu lực từ Ngày kế (active_upgrades).
 """
 
+from ..inventory import views_by_id
+
 UPGRADE_FIELD = {"oxygen": "oxygen_max_s", "hp": "hp_max"}
 
 
@@ -14,7 +16,7 @@ class ShopSim:
 
     def __init__(self, tuning, stock, upgrades, money, earned, reputation):
         self.cfg = tuning["shop"]
-        self.stock = dict(stock)
+        self.stock = [dict(it) for it in stock]  # v1.2: cá thể dư sau ca (không hao tươi trong Shop)
         self.upgrades = upgrades  # map dùng chung với DayGame (cấp đã mua)
         self.money = money
         self.earned = earned
@@ -25,7 +27,7 @@ class ShopSim:
         self.reason = None
 
     def snapshot(self) -> dict:
-        return {"stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}}
+        return {"stock": views_by_id(self.stock)}
 
     def step(self, inp):
         events = []

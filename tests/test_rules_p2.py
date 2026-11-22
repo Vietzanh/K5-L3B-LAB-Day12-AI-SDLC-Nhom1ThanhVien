@@ -6,7 +6,7 @@ import time
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
-from test_rules_p1 import names, run_case, snap_at
+from test_rules_p1 import inv_counts, items, kinds, names, run_case, snap_at  # noqa: F401
 
 
 def tuning():
@@ -97,16 +97,17 @@ class Monsters(unittest.TestCase):
 
     def test_hit_loses_half_hold_lifo_invuln_recoil(self):
         block = dict(NO_FISH, player={"pos": [50, 20]}, monsters=[croc([50.5, 20])],
-                     hold=["ca_loc", "bong_sung", "ca_linh", "ca_keo", "keo_neo"])
+                     hold=items("ca_loc", "bong_sung", "ca_linh", "ca_keo", "keo_neo"))
         rows, _ = run_case("gather", block, ticks=100, every=1)
         hits = events(rows, "monster_hit")
         # bất tử 90 đặt ở tick 1 -> bị chạm lại được từ tick 1 + 90 = 91 (cùng quy ước "cooldown L đặt ở t dùng lại từ t+L")
         self.assertEqual(len(hits), 2)
         self.assertEqual(hits[1]["tick"], 91)
-        self.assertEqual((hits[0]["tick"], hits[0]["data"]),
-                         (1, {"monster_id": "M1", "hp": 2, "lost": ["keo_neo", "ca_keo"], "pos": [50, 20]}))
+        h0 = hits[0]["data"]
+        self.assertEqual((hits[0]["tick"], h0["monster_id"], h0["hp"], h0["pos"]), (1, "M1", 2, [50, 20]))
+        self.assertEqual([(x["id"], x["kind"]) for x in h0["lost"]], [("I5", "keo_neo"), ("I4", "ca_keo")])
         s1 = snap_at(rows, 1)
-        self.assertEqual((s1["player"]["invuln_ticks"], s1["hold"]), (90, ["ca_loc", "bong_sung", "ca_linh"]))
+        self.assertEqual((s1["player"]["invuln_ticks"], kinds(s1["hold"])), (90, ["ca_loc", "bong_sung", "ca_linh"]))
         m1 = s1["monsters"][0]
         self.assertEqual((m1["state"], m1["state_ticks_left"], m1["recoil_dir"]), ("recoil", 60, [1, 0]))
         self.assertAlmostEqual(snap_at(rows, 2)["monsters"][0]["pos"][0] - m1["pos"][0], 2 / 60, places=3)
@@ -119,12 +120,13 @@ class Monsters(unittest.TestCase):
 
     def test_monster_faint_drops_rest_and_ends(self):
         block = dict(NO_FISH, player={"pos": [50, 20], "hp": 1}, monsters=[croc([50.5, 20])],
-                     hold=["ca_loc", "bong_sung", "ca_linh"])
+                     hold=items("ca_loc", "bong_sung", "ca_linh"))
         rows, inv = run_case("gather", block, ticks=5)
         self.assertEqual(names(rows), [(1, "monster_hit"), (1, "faint"), (1, "gather_end")])
-        self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"], ["ca_linh"])
-        self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0})
-        self.assertEqual(inv, {"items": {}})
+        self.assertEqual(kinds(events(rows, "monster_hit")[0]["data"]["lost"]), ["ca_linh"])
+        f = events(rows, "faint")[0]["data"]
+        self.assertEqual((f["cause"], kinds(f["lost"]), f["hp"]), ("monster", ["bong_sung", "ca_loc"], 0))
+        self.assertEqual(inv, {"items": []})
 
 
 class QuanV11(unittest.TestCase):
@@ -136,7 +138,7 @@ class QuanV11(unittest.TestCase):
         self.assertEqual(len(tuning()["menu"]), 6)
 
     def test_customers_fill_tables_by_schedule(self):
-        rows, _ = run_case("quan", {"stock": {"ca_loc": 10}}, ticks=2821, every=2821)
+        rows, _ = run_case("quan", {"stock": items(*["ca_loc"] * 10)}, ticks=2821, every=2821)
         arr = events(rows, "customer_arrived")
         self.assertEqual([(e["tick"], e["data"]["table_id"]) for e in arr],
                          [(120, "T1"), (1020, "T2"), (1920, "T3"), (2820, "T4")])
@@ -159,7 +161,7 @@ class Pause(unittest.TestCase):
 
 class Day(unittest.TestCase):
     def test_day_start_events_and_phase_changes(self):
-        sc = {"gather": dict(NO_FISH, hold=["ca_loc"])}
+        sc = {"gather": dict(NO_FISH, hold=items("ca_loc"))}
         inputs = [{"tick": 0, "interact": True}, {"tick": 10801, "shop_done": True}]
         rows = run_day(sc, inputs, ticks=20000, every=5000)
         first = [(r["tick"], r["phase"], r["day"], r["name"]) for r in rows[:3]]

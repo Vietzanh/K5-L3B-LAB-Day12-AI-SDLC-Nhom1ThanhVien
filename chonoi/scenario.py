@@ -122,10 +122,8 @@ def _validate_gather(b, tuning, upgrades):
             _check_ids(arr, b[arr])
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
         raise BadInput("random_fish phải là boolean")
-    if "hold" in b:
-        h = b["hold"]
-        if not isinstance(h, list) or any(k not in INGREDIENTS for k in h):
-            raise BadInput("hold phải là mảng kind nguyên liệu hợp lệ")
+    if "hold" in b:  # v1.2: mảng cá thể {id, kind, fresh} theo thứ tự vào giỏ
+        h = validate_items(b["hold"], INGREDIENTS, "hold")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
     p = b.get("player", {})
@@ -215,8 +213,8 @@ def _validate_quan(b, tuning):
     for arr in ("stoves", "tables", "customers"):
         if arr in b:
             _check_ids(arr, b[arr])
-    if "stock" in b:
-        validate_items(b["stock"])
+    if "stock" in b:  # v1.2: mảng cá thể (gồm cả phần giữ)
+        validate_items(b["stock"], INGREDIENTS, "stock")
     if "random_customers" in b and not isinstance(b["random_customers"], bool):
         raise BadInput("random_customers phải là boolean")
     if "reputation" in b:
