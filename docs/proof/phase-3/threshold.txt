@@ -1,4 +1,4 @@
-# Ngưỡng tươi — commit 1182577, contract 1.2
+# Ngưỡng tươi — commit b5f71d4, contract 1.2
 scenario: {"gather":{"hold":[{"id":"I1","kind":"ca_linh","fresh":30}],"random_fish":false,"monsters":[]}}
 $ python3 -m chonoi.headless --mode gather --seed 1 --scenario sc.json --ticks 1 --out o.jsonl
 exit=0

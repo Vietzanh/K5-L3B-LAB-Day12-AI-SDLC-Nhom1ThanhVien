@@ -1,0 +1,111 @@
+# Smoke + unit test — phase-3
+commit: b5f71d4
+python: Python 3.10.12
+lệnh:   PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+
+test_menu_intro_screens_hold_sim_and_continue (test_live.LiveDayScreens) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest) ... ok
+test_bad_frames_raise (test_python_starter_units.Units) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units) ... ok
+test_id_sorting (test_python_starter_units.Units) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units) ... ok
+test_catch_nearest_tie_by_id_and_cooldown (test_rules_p1.GatherHarvestCatch) ... ok
+test_catch_not_at_surface_and_hold_full_keeps_school (test_rules_p1.GatherHarvestCatch) ... ok
+test_catch_yield_ca_linh_3 (test_rules_p1.GatherHarvestCatch) ... ok
+test_dock_has_priority_over_harvest (test_rules_p1.GatherHarvestCatch) ... ok
+test_harvest_exactly_at_radius_edge_sets_regrow (test_rules_p1.GatherHarvestCatch) ... ok
+test_harvest_on_last_step_goes_into_inventory (test_rules_p1.GatherHarvestCatch) ... ok
+test_no_harvest_underwater_and_hold_full (test_rules_p1.GatherHarvestCatch) ... ok
+test_node_regrown_after_1200_ticks_and_harvest_again (test_rules_p1.GatherHarvestCatch) ... ok
+test_dive_and_surface_events (test_rules_p1.GatherOxygen) ... ok
+test_faint_drops_hold_lifo_and_writes_empty_inventory (test_rules_p1.GatherOxygen) ... ok
+test_oxygen_drains_underwater_and_refills_at_surface (test_rules_p1.GatherOxygen) ... ok
+test_oxygen_empty_then_first_choke_at_t_plus_59 (test_rules_p1.GatherOxygen) ... ok
+test_surfacing_on_choke_step_prevents_choke (test_rules_p1.GatherOxygen) ... ok
+test_default_reserved_by_order_tick_then_table (test_rules_p1.QuanCustomers) ... ok
+test_first_customer_at_tick_120_reserves_recipe (test_rules_p1.QuanCustomers) ... ok
+test_no_dish_when_stock_short (test_rules_p1.QuanCustomers) ... ok
+test_no_table_skips_turn (test_rules_p1.QuanCustomers) ... ok
+test_patience_zero_leaves_and_lowers_reputation (test_rules_p1.QuanCustomers) ... ok
+test_contradictions_exit_2 (test_rules_p1.QuanFixtureErrors) ... ok
+test_valid_fixture_exit_0 (test_rules_p1.QuanFixtureErrors) ... ok
+test_closing_pays_eaters_and_releases_waiters_without_penalty (test_rules_p1.QuanService) ... ok
+test_closing_waiter_leaves_without_reputation_loss (test_rules_p1.QuanService) ... ok
+test_cook_pick_serve_pay_full_flow (test_rules_p1.QuanService) ... ok
+test_dish_ready_and_pick (test_rules_p1.QuanService) ... ok
+test_leaving_customer_discards_dish_in_hand (test_rules_p1.QuanService) ... ok
+test_serve_below_half_patience_no_tip (test_rules_p1.QuanService) ... ok
+test_serve_on_tick_patience_hits_zero_is_valid (test_rules_p1.QuanService) ... ok
+test_serve_with_tip_then_paid_after_eating (test_rules_p1.QuanService) ... ok
+test_stove_before_table_on_tie (test_rules_p1.QuanService) ... ok
+test_buy_failed_reasons (test_rules_p2.Day) ... ok
+test_day_plan_override_recomputes_ingredients (test_rules_p2.Day) ... ok
+test_day_scenario_errors_exit_2 (test_rules_p2.Day) ... ok
+test_day_start_events_and_phase_changes (test_rules_p2.Day) ... ok
+test_one_day_runs_fast (test_rules_p2.Day) ... ok
+test_shop_auto_closes_after_600_ticks (test_rules_p2.Day) ... ok
+test_shop_buy_applies_next_day (test_rules_p2.Day) ... ok
+test_fish_swim_speed_and_depth_band (test_rules_p2.Fish) ... ok
+test_fixture_fish_still_when_random_off_and_ca_keo_yield_2 (test_rules_p2.Fish) ... ok
+test_initial_8_schools_on_distinct_spawn_points_deterministic (test_rules_p2.Fish) ... ok
+test_spawn_at_360_and_cap (test_rules_p2.Fish) ... ok
+test_default_layout_day1_only_m1 (test_rules_p2.Monsters) ... ok
+test_hit_loses_half_hold_lifo_invuln_recoil (test_rules_p2.Monsters) ... ok
+test_monster_faint_drops_rest_and_ends (test_rules_p2.Monsters) ... ok
+test_no_chase_when_player_shallow (test_rules_p2.Monsters) ... ok
+test_patrol_1ms_to_waypoint (test_rules_p2.Monsters) ... ok
+test_pause_freezes_sim_and_resume_runs_same_step (test_rules_p2.Pause) ... ok
+test_customers_fill_tables_by_schedule (test_rules_p2.QuanV11) ... ok
+test_two_stoves_four_tables_six_dishes (test_rules_p2.QuanV11) ... ok
+test_handover_same_tick_and_ids_continue_across_days (test_rules_p3.DayFreshness) ... ok
+test_hold_decays_half_point_per_second (test_rules_p3.GatherFreshness) ... ok
+test_new_item_fresh_100_and_spoiled_events_by_id (test_rules_p3.GatherFreshness) ... ok
+test_threshold_fixture_from_ticket_spoils_on_first_step_once (test_rules_p3.GatherFreshness)
+Đúng scenario mẫu của Ticket-03: cá thể bắt đầu fresh 30 -> ươn ở bước đầu, phát một lần. ... ok
+test_bad_inventory_files_exit_2 (test_rules_p3.InventoryFile) ... ok
+test_handover_smoke_exact_ids_and_freshness (test_rules_p3.InventoryFile)
+Smoke bàn giao của Ticket-03: fresh 100, cập bến frame 0 -> quan --inventory --ticks 0 khớp chính xác. ... ok
+test_inventory_sorted_by_id_and_spoiled_kept (test_rules_p3.InventoryFile) ... ok
+test_price_by_average_freshness_and_tip_on_locked_price (test_rules_p3.QuanFreshness) ... ok
+test_reserve_freshest_tie_by_id (test_rules_p3.QuanFreshness) ... ok
+test_reserved_item_spoils_then_rereserve (test_rules_p3.QuanFreshness) ... ok
+test_reserved_item_spoils_without_replacement_unfulfillable (test_rules_p3.QuanFreshness) ... ok
+test_scenario_reserved_must_be_ids (test_rules_p3.QuanFreshness) ... ok
+test_spoiled_items_not_cookable (test_rules_p3.QuanFreshness) ... ok
+test_stock_decays_quarter_point_per_second_including_reserved (test_rules_p3.QuanFreshness) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes) ... ok
+test_good (test_team_check.TeamCheck) ... ok
+test_template_is_rejected (test_team_check.TeamCheck) ... ok
+test_too_few_members (test_team_check.TeamCheck) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck) ... ok
+
+----------------------------------------------------------------------
+Ran 95 tests in 54.135s
+
+OK
