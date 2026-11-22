@@ -29,7 +29,7 @@ def _post(url, obj):
 class LiveServerTest(unittest.TestCase):
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
-        server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
+        server = LiveServer(LiveGame("gather", tuning, {}, 1, menu=False), port=0)  # cổng ngẫu nhiên
         server.start()
         try:
             base = f"http://127.0.0.1:{server.port}"
@@ -56,6 +56,29 @@ class LiveServerTest(unittest.TestCase):
             server.stop()
         self.assertFalse(server.game._thread.is_alive())
         self.assertFalse(server._thread.is_alive())
+
+
+class LiveDayScreens(unittest.TestCase):
+    def test_menu_intro_screens_hold_sim_and_continue(self):
+        tuning = load_contract()["tuning"]
+        g = LiveGame("day", tuning, {"gather": {"random_fish": False}}, 1, days=1)
+        self.assertEqual(g.screen, "menu")
+        g._tick_once()
+        self.assertEqual(g.session.tick, 0, "màn hình đang hiện: sim không chạy")
+        g.cont()
+        self.assertEqual(g.screen, "day_intro")
+        g.cont()
+        self.assertIsNone(g.screen)
+        g.set_input({"interact": True})  # đứng ở bến: cập bến ngay
+        g._tick_once()
+        self.assertEqual(g.session.sim.phase, "quan")
+        self.assertEqual(g.screen, "evening_intro")
+        st = json.loads(g.state_json())
+        self.assertEqual((st["screen"], st["phase"], st["day"]), ("evening_intro", "quan", 1))
+        g.set_input({"pause": True})
+        g.cont()
+        g._tick_once()
+        self.assertEqual(json.loads(g.state_json())["state"], "paused")
 
 
 if __name__ == "__main__":
