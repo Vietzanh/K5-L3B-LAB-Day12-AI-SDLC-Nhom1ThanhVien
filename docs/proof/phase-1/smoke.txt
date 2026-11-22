@@ -1,5 +1,5 @@
 # Smoke + unit test — phase-1
-commit: 718f5ff
+commit: 974c625 (+ thay đổi chưa commit)
 python: Python 3.10.12
 lệnh:   PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 
@@ -11,6 +11,35 @@ test_id_sorting (test_python_starter_units.Units) ... ok
 test_input_edges_and_inherit (test_python_starter_units.Units) ... ok
 test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units) ... ok
 test_session_steps_gather_and_dock (test_python_starter_units.Units) ... ok
+test_catch_nearest_tie_by_id_and_cooldown (test_rules_p1.GatherHarvestCatch) ... ok
+test_catch_not_at_surface_and_hold_full_keeps_school (test_rules_p1.GatherHarvestCatch) ... ok
+test_catch_yield_ca_linh_3 (test_rules_p1.GatherHarvestCatch) ... ok
+test_dock_has_priority_over_harvest (test_rules_p1.GatherHarvestCatch) ... ok
+test_harvest_exactly_at_radius_edge_sets_regrow (test_rules_p1.GatherHarvestCatch) ... ok
+test_harvest_on_last_step_goes_into_inventory (test_rules_p1.GatherHarvestCatch) ... ok
+test_no_harvest_underwater_and_hold_full (test_rules_p1.GatherHarvestCatch) ... ok
+test_node_regrown_after_1200_ticks_and_harvest_again (test_rules_p1.GatherHarvestCatch) ... ok
+test_dive_and_surface_events (test_rules_p1.GatherOxygen) ... ok
+test_faint_drops_hold_lifo_and_writes_empty_inventory (test_rules_p1.GatherOxygen) ... ok
+test_oxygen_drains_underwater_and_refills_at_surface (test_rules_p1.GatherOxygen) ... ok
+test_oxygen_empty_then_first_choke_at_t_plus_59 (test_rules_p1.GatherOxygen) ... ok
+test_surfacing_on_choke_step_prevents_choke (test_rules_p1.GatherOxygen) ... ok
+test_default_reserved_by_order_tick_then_table (test_rules_p1.QuanCustomers) ... ok
+test_first_customer_at_tick_120_reserves_recipe (test_rules_p1.QuanCustomers) ... ok
+test_no_dish_when_stock_short (test_rules_p1.QuanCustomers) ... ok
+test_no_table_skips_turn (test_rules_p1.QuanCustomers) ... ok
+test_patience_zero_leaves_and_lowers_reputation (test_rules_p1.QuanCustomers) ... ok
+test_contradictions_exit_2 (test_rules_p1.QuanFixtureErrors) ... ok
+test_valid_fixture_exit_0 (test_rules_p1.QuanFixtureErrors) ... ok
+test_closing_pays_eaters_and_releases_waiters_without_penalty (test_rules_p1.QuanService) ... ok
+test_closing_waiter_leaves_without_reputation_loss (test_rules_p1.QuanService) ... ok
+test_cook_pick_serve_pay_full_flow (test_rules_p1.QuanService) ... ok
+test_dish_ready_and_pick (test_rules_p1.QuanService) ... ok
+test_leaving_customer_discards_dish_in_hand (test_rules_p1.QuanService) ... ok
+test_serve_below_half_patience_no_tip (test_rules_p1.QuanService) ... ok
+test_serve_on_tick_patience_hits_zero_is_valid (test_rules_p1.QuanService) ... ok
+test_serve_with_tip_then_paid_after_eating (test_rules_p1.QuanService) ... ok
+test_stove_before_table_on_tie (test_rules_p1.QuanService) ... ok
 test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract) ... ok
 test_con_02_deterministic_bytes (test_smoke_p1.Contract) ... ok
 test_con_03_bad_input_exit_2 (test_smoke_p1.Contract) ... ok
@@ -41,6 +70,6 @@ test_too_few_members (test_team_check.TeamCheck) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck) ... ok
 
 ----------------------------------------------------------------------
-Ran 32 tests in 22.808s
+Ran 61 tests in 28.958s
 
 OK
